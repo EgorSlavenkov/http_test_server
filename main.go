@@ -21,7 +21,6 @@ type apiConfig struct {
 func main() {
 	const filepathRoot = "."
 	const port = "8080"
-	mux := http.NewServeMux()
 
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
@@ -44,18 +43,25 @@ func main() {
 		db:             dbQueries,
 		platform:       platform,
 	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/app/", http.StripPrefix("/app/", apiCfg.middlewareMetricsInc(http.FileServer(http.Dir(filepathRoot)))))
+
+	mux.HandleFunc("GET /api/healthz", handlerReadiness)
+
+	mux.HandleFunc("POST /api/users", apiCfg.handlerUsersCreate)
+
+	mux.HandleFunc("POST /api/chirps", apiCfg.handlerPostChirp)
+	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetAllChirps)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirpByID)
+
+	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
+
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: mux,
 	}
-
-	mux.Handle("/app/", http.StripPrefix("/app/", apiCfg.middlewareMetricsInc(http.FileServer(http.Dir(filepathRoot)))))
-	mux.HandleFunc("GET /api/healthz", handlerReadiness)
-	mux.HandleFunc("POST /api/users", apiCfg.handlerUsersCreate)
-	mux.HandleFunc("POST /api/chirps", apiCfg.handlerPostChirp)
-	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetAllChirps)
-	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
-	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 
 	log.Printf("Serving files from %s on port: %s\n", filepathRoot, port)
 	log.Fatal(srv.ListenAndServe())
