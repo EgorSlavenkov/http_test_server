@@ -53,6 +53,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/app/", http.StripPrefix("/app/", apiCfg.middlewareMetricsInc(http.FileServer(http.Dir(filepathRoot)))))
 
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerSetChirpyRedStatus)
+
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 
 	mux.HandleFunc("POST /api/users", apiCfg.handlerUsersCreate)
